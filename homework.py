@@ -80,7 +80,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Извлекает из информации о конкретной домашней работе статус этой работы."""
+    """Извлекает из информации о домашней работе статус этой работы."""
     homework_name = homework['homework_name']
     homework_status = homework['status']
     if homework_name is None:
@@ -113,7 +113,7 @@ def check_tokens():
 
 
 def main():
-    """Основная логика работы бота"""
+    """Основная логика работы бота."""
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     while True:
