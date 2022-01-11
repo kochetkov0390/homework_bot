@@ -34,20 +34,16 @@ HOMEWORK_STATUSES = {
 
 
 class ListHomeworkEmptyError(Exception):
-    """Список пуст"""
+    """Список пуст."""
 
 
 def send_message(bot, message):
-    """
-    Обращается к API Telegram и отправляет сообщение боту.
-    """
+    """Обращается к API Telegram и отправляет сообщение боту."""
     return bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
 
 
 def get_api_answer(current_timestamp):
-    """
-    Обращается к API Яндекс Практикум и получает статус домашней работы.
-    """
+    """Обращается к API Яндекс Практикум и получает статус домашней работы."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     homework_status = requests.get(
@@ -62,9 +58,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """
-    Проверяет ответ API на корректность
-    """
+    """Проверяет ответ API на корректность."""
     if not isinstance(response, dict):
         message = 'Ответ не является словарем!'
         logger.error(message)
@@ -86,9 +80,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """
-    Извлекает из информации о конкретной домашней работе статус этой работы
-    """
+    """Извлекает из информации о конкретной домашней работе статус этой работы."""
     homework_name = homework['homework_name']
     homework_status = homework['status']
     if homework_name is None:
@@ -103,9 +95,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """
-    Проверяет доступность переменных окружения
-    """
+    """Проверяет доступность переменных окружения."""
     tokens = ('Отсутствует переменная окружения:')
     tokens_bool = True
     if PRACTICUM_TOKEN is None:
