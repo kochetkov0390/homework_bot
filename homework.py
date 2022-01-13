@@ -3,6 +3,8 @@ import os
 import requests
 import telegram
 import time
+from http import HTTPStatus
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,24 +39,42 @@ class ListHomeworkEmptyError(Exception):
     """Список пуст."""
 
 
+class ResponseStatusCodeError(Exception):
+    """Неверный статус ответа сервера."""
+
+
+class RequestExceptionError(Exception):
+    """Неверный запрос."""
+
+
 def send_message(bot, message):
     """Обращается к API Telegram и отправляет сообщение боту."""
-    return bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    try:
+        bot.send_message(TELEGRAM_CHAT_ID, text=message)
+        logger.info(
+            f'Отправлено сообщение в Telegram: {message}')
+    except telegram.TelegramError as error:
+        logger.error(
+            f'Сообщение в Telegram не отправлено: {error}')
 
 
 def get_api_answer(current_timestamp):
     """Обращается к API Яндекс Практикум и получает статус домашней работы."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    homework_status = requests.get(
-        ENDPOINT,
-        params=params,
-        headers=HEADERS
-    )
-    if homework_status.status_code != 200:
-        raise Exception("invalid response")
-    logging.info('server respond')
-    return homework_status.json()
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        if response.status_code != HTTPStatus.OK:
+            url_error_message = (
+                f'Ссылка {ENDPOINT} недоступна.'
+                f'Код ответа: {response.status_code}.')
+            logger.error(url_error_message)
+            raise ResponseStatusCodeError(url_error_message)
+        return response.json()
+    except requests.exceptions.RequestException as request_error:
+        request_error_message = f'Код ответа API: {request_error}'
+        logger.error(request_error_message)
+        raise RequestExceptionError(request_error_message)
 
 
 def check_response(response):
@@ -88,6 +108,8 @@ def parse_status(homework):
     if homework_status is None:
         raise Exception('Not correct status')
     verdict = HOMEWORK_STATUSES[homework.get('status')]
+    if homework.get("status") not in HOMEWORK_STATUSES.keys():
+        return 'Статус работы неверный'
     if verdict is None:
         raise Exception("No verdict")
     logging.info(f'got verdict {verdict}')
