@@ -7,6 +7,9 @@ from http import HTTPStatus
 
 from dotenv import load_dotenv
 
+from exceptions import (ListHomeworkEmptyError, ResponseStatusCodeError,
+                        RequestExceptionError)
+
 load_dotenv()
 
 logging.basicConfig(
@@ -35,18 +38,6 @@ HOMEWORK_STATUSES = {
 }
 
 
-class ListHomeworkEmptyError(Exception):
-    """Список пуст."""
-
-
-class ResponseStatusCodeError(Exception):
-    """Неверный статус ответа сервера."""
-
-
-class RequestExceptionError(Exception):
-    """Неверный запрос."""
-
-
 def send_message(bot, message):
     """Обращается к API Telegram и отправляет сообщение боту."""
     try:
@@ -60,8 +51,9 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     """Обращается к API Яндекс Практикум и получает статус домашней работы."""
-    timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
+    if current_timestamp is None:
+        current_timestamp = int(time.time())
+    params = {'from_date': current_timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
         if response.status_code != HTTPStatus.OK:
@@ -71,6 +63,8 @@ def get_api_answer(current_timestamp):
             logger.error(url_error_message)
             raise ResponseStatusCodeError(url_error_message)
         return response.json()
+    except ConnectionError:
+        logging.error('Ошибка сервера')
     except requests.exceptions.RequestException as request_error:
         request_error_message = f'Код ответа API: {request_error}'
         logger.error(request_error_message)
@@ -109,7 +103,9 @@ def parse_status(homework):
         raise Exception('Not correct status')
     verdict = HOMEWORK_STATUSES[homework.get('status')]
     if homework.get("status") not in HOMEWORK_STATUSES.keys():
-        return 'Статус работы неверный'
+        message = 'Статус работы неверный.'
+        logger.error(message)
+        raise KeyError(message)
     if verdict is None:
         raise Exception("No verdict")
     logging.info(f'got verdict {verdict}')
